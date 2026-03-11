@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +20,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,15 +37,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.arkamo.rickandmorty.domain.model.Character
 import org.koin.compose.viewmodel.koinViewModel
 
-private val DarkBg    = Color(0xFF1A1A2E)
-private val CardBg    = Color(0xFF16213E)
-private val RickGreen = Color(0xFF97CE4C)
-
-private val unknown = Color(0xFF9E9E9E)
+private val DarkBg     = Color(0xFF1A1A2E)
+private val CardBg     = Color(0xFF16213E)
+private val ImageBg    = Color(0xFF2A2A4A)
+private val RickGreen  = Color(0xFF97CE4C)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,9 +68,8 @@ fun MainScreen(viewModel: MainViewModel = koinViewModel()) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
             )
         },
-        containerColor = DarkBg.copy(alpha = 0.9f)
+        containerColor = DarkBg
     ) { padding ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,9 +95,7 @@ private fun CharacterList(characters: List<Character>) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 16.dp, vertical = 12.dp
-        )
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
         items(characters, key = { it.id }) { character ->
             CharacterItem(character)
@@ -114,10 +114,9 @@ private fun CharacterItem(character: Character) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = character.image,
-                contentDescription = character.name,
-                contentScale = ContentScale.Crop,
+            CharacterImage(
+                url = character.image,
+                name = character.name,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -155,6 +154,47 @@ private fun CharacterItem(character: Character) {
 }
 
 @Composable
+private fun CharacterImage(url: String, name: String, modifier: Modifier) {
+    val context = LocalPlatformContext.current
+
+    val request = remember(url) {
+        ImageRequest.Builder(context)
+            .data(url)
+            .crossfade(true)
+            .build()
+    }
+
+    SubcomposeAsyncImage(
+        model = request,
+        contentDescription = name,
+        contentScale = ContentScale.Crop,
+        modifier = modifier,
+        loading = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(ImageBg)
+            )
+        },
+        error = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(ImageBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = name.take(1).uppercase(),
+                    color = RickGreen,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp
+                )
+            }
+        }
+    )
+}
+
+@Composable
 private fun ErrorMessage(message: String, onRetry: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = message, color = Color.White.copy(alpha = 0.7f))
@@ -165,7 +205,7 @@ private fun ErrorMessage(message: String, onRetry: () -> Unit) {
 }
 
 private fun Character.statusColor(): Color = when (status.lowercase()) {
-    "alive"   -> Color(0xFF55CC44)
-    "dead"    -> Color(0xFFD63D2E)
-    else      -> unknown
+    "alive" -> Color(0xFF55CC44)
+    "dead"  -> Color(0xFFD63D2E)
+    else    -> Color(0xFF9E9E9E)
 }
