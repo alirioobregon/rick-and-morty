@@ -1,7 +1,9 @@
 package com.arkamo.rickandmorty.presentation.main
 
+import com.arkamo.rickandmorty.domain.model.Character
+
 data class MainUiState(
-    val tagline: String = "Wubba Lubba Dub Dub!",
-    val isReady: Boolean = false,
-    val title: String = "Rick & Morty"
+    val characters: List<Character> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
